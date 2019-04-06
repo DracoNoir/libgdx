@@ -21,8 +21,8 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle;
-import com.badlogic.gdx.scenes.scene2d.utils.Align;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Scaling;
 
 /** A button with a child {@link Image} and {@link Label}.
@@ -32,7 +32,7 @@ import com.badlogic.gdx.utils.Scaling;
  * @author Nathan Sweet */
 public class ImageTextButton extends Button {
 	private final Image image;
-	private final Label label;
+	private Label label;
 	private ImageTextButtonStyle style;
 
 	public ImageTextButton (String text, Skin skin) {
@@ -53,10 +53,11 @@ public class ImageTextButton extends Button {
 
 		image = new Image();
 		image.setScaling(Scaling.fit);
-		add(image);
 
 		label = new Label(text, new LabelStyle(style.font, style.fontColor));
 		label.setAlignment(Align.center);
+
+		add(image);
 		add(label);
 
 		setStyle(style);
@@ -82,7 +83,8 @@ public class ImageTextButton extends Button {
 		return style;
 	}
 
-	private void updateImage () {
+	/** Updates the Image with the appropriate Drawable from the style before it is drawn. */
+	protected void updateImage () {
 		Drawable drawable = null;
 		if (isDisabled() && style.imageDisabled != null)
 			drawable = style.imageDisabled;
@@ -122,6 +124,11 @@ public class ImageTextButton extends Button {
 		return getCell(image);
 	}
 
+	public void setLabel (Label label) {
+		getLabelCell().setActor(label);
+		this.label = label;
+	}
+
 	public Label getLabel () {
 		return label;
 	}
@@ -139,7 +146,13 @@ public class ImageTextButton extends Button {
 	}
 
 	public String toString () {
-		return super.toString() + ": " + label.getText();
+		String name = getName();
+		if (name != null) return name;
+		String className = getClass().getName();
+		int dotIndex = className.lastIndexOf('.');
+		if (dotIndex != -1) className = className.substring(dotIndex + 1);
+		return (className.indexOf('$') != -1 ? "ImageTextButton " : "") + className + ": " + image.getDrawable() + " "
+			+ label.getText();
 	}
 
 	/** The style for an image text button, see {@link ImageTextButton}.

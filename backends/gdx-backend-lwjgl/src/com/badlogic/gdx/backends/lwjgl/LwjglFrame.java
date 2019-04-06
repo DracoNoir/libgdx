@@ -16,17 +16,19 @@
 
 package com.badlogic.gdx.backends.lwjgl;
 
-import com.badlogic.gdx.ApplicationListener;
-
 import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.Point;
+import java.awt.geom.AffineTransform;
 
 import javax.swing.JFrame;
+
+import com.badlogic.gdx.ApplicationListener;
 
 /** Wraps an {@link LwjglCanvas} in a resizable {@link JFrame}. */
 public class LwjglFrame extends JFrame {
 	LwjglCanvas lwjglCanvas;
+	private Thread shutdownHook;
 
 	public LwjglFrame (ApplicationListener listener, String title, int width, int height) {
 		super(title);
@@ -53,7 +55,8 @@ public class LwjglFrame extends JFrame {
 			}
 
 			protected void setDisplayMode (int width, int height) {
-				LwjglFrame.this.getContentPane().setPreferredSize(new Dimension(width, height));
+				Dimension size = new Dimension(Math.round(width / scaleX), Math.round(height / scaleY));
+				LwjglFrame.this.getContentPane().setPreferredSize(size);
 				LwjglFrame.this.getContentPane().invalidate();
 				LwjglFrame.this.pack();
 				LwjglFrame.this.setLocationRelativeTo(null);
@@ -78,20 +81,20 @@ public class LwjglFrame extends JFrame {
 			}
 		};
 
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			public void run () {
-				Runtime.getRuntime().halt(0); // Because fuck you, deadlock causing Swing shutdown hooks.
-			}
-		});
+		setHaltOnShutdown(true);
 
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
-		getContentPane().setPreferredSize(new Dimension(config.width, config.height));
+
+		AffineTransform transform = getGraphicsConfiguration().getDefaultTransform();
+		float scaleX = (float)transform.getScaleX(), scaleY = (float)transform.getScaleY();
+		Dimension size = new Dimension(Math.round(config.width / scaleX), Math.round(config.height / scaleY));
+		getContentPane().setPreferredSize(size);
 
 		initialize();
 		pack();
 		Point location = getLocation();
 		if (location.x == 0 && location.y == 0) setLocationRelativeTo(null);
-		lwjglCanvas.getCanvas().setSize(getSize());
+		lwjglCanvas.getCanvas().setSize(size);
 
 		// Finish with invokeLater so any LwjglFrame super constructor has a chance to initialize.
 		EventQueue.invokeLater(new Runnable() {
@@ -101,6 +104,28 @@ public class LwjglFrame extends JFrame {
 				lwjglCanvas.getCanvas().requestFocus();
 			}
 		});
+	}
+
+	public void reshape (int x, int y, int width, int height) {
+		super.reshape(x, y, width, height);
+		revalidate();
+	}
+
+	/** When true, <code>Runtime.getRuntime().halt(0);</code> is used when the JVM shuts down. This prevents Swing shutdown hooks
+	 * from causing a deadlock and keeping the JVM alive indefinitely. Default is true. */
+	public void setHaltOnShutdown (boolean halt) {
+		if (halt) {
+			if (shutdownHook != null) return;
+			shutdownHook = new Thread() {
+				public void run () {
+					Runtime.getRuntime().halt(0); // Because fuck you, deadlock causing Swing shutdown hooks.
+				}
+			};
+			Runtime.getRuntime().addShutdownHook(shutdownHook);
+		} else if (shutdownHook != null) {
+			Runtime.getRuntime().removeShutdownHook(shutdownHook);
+			shutdownHook = null;
+		}
 	}
 
 	protected int getFrameRate () {

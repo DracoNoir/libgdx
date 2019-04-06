@@ -30,11 +30,12 @@ import com.badlogic.gdx.net.SocketHints;
 
 public class IOSNet implements Net {
 
-	NetJavaImpl netJavaImpl = new NetJavaImpl();
+	NetJavaImpl netJavaImpl;
 	final UIApplication uiApp;
 
-	public IOSNet (IOSApplication app) {
+	public IOSNet (IOSApplication app, IOSApplicationConfiguration configuration) {
 		uiApp = app.uiApp;
+		netJavaImpl = new NetJavaImpl(configuration.maxNetThreads);
 	}
 
 	@Override
@@ -45,6 +46,11 @@ public class IOSNet implements Net {
 	@Override
 	public void cancelHttpRequest (HttpRequest httpRequest) {
 		netJavaImpl.cancelHttpRequest(httpRequest);
+	}
+	
+	@Override
+	public ServerSocket newServerSocket (Protocol protocol, String hostname, int port, ServerSocketHints hints) {
+		return new NetJavaServerSocketImpl(protocol, hostname, port, hints);
 	}
 
 	@Override
@@ -58,7 +64,12 @@ public class IOSNet implements Net {
 	}
 
 	@Override
-	public void openURI (String URI) {
-		uiApp.openURL(new NSURL(URI));
+	public boolean openURI (String URI) {
+		NSURL url = new NSURL(URI);
+		if (uiApp.canOpenURL(url)) {
+			uiApp.openURL(url);
+			return true;
+		}
+		return false;
 	}
 }

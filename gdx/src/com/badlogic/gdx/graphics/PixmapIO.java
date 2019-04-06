@@ -55,13 +55,15 @@ public class PixmapIO {
 		return CIM.read(file);
 	}
 
-	/** Writes the pixmap as a PNG with compression. See {@link PNG} to configure the compression level, more efficiently flip the
-	 * pixmap vertically, and to write out multiple PNGs with minimal allocation. */
-	static public void writePNG (FileHandle file, Pixmap pixmap) {
+	/** Writes the pixmap as a PNG. See {@link PNG} to write out multiple PNGs with minimal allocation.
+	 * @param compression sets the deflate compression level. Default is {@link Deflater#DEFAULT_COMPRESSION}
+	 * @param flipY flips the Pixmap vertically if true */
+	static public void writePNG (FileHandle file, Pixmap pixmap, int compression, boolean flipY) {
 		try {
 			PNG writer = new PNG((int)(pixmap.getWidth() * pixmap.getHeight() * 1.5f)); // Guess at deflated size.
 			try {
-				writer.setFlipY(false);
+				writer.setFlipY(flipY);
+				writer.setCompression(compression);
 				writer.write(file, pixmap);
 			} finally {
 				writer.dispose();
@@ -69,6 +71,12 @@ public class PixmapIO {
 		} catch (IOException ex) {
 			throw new GdxRuntimeException("Error writing PNG: " + file, ex);
 		}
+	}
+
+	/** Writes the pixmap as a PNG with compression. See {@link PNG} to configure the compression level, more efficiently flip the
+	 * pixmap vertically, and to write out multiple PNGs with minimal allocation. */
+	static public void writePNG (FileHandle file, Pixmap pixmap) {
+		writePNG(file, pixmap, Deflater.DEFAULT_COMPRESSION, false);
 	}
 
 	/** @author mzechner */
@@ -186,7 +194,6 @@ public class PixmapIO {
 		static private final byte PAETH = 4;
 
 		private final ChunkBuffer buffer;
-		private final DeflaterOutputStream deflaterOutput;
 		private final Deflater deflater;
 		private ByteArray lineOutBytes, curLineBytes, prevLineBytes;
 		private boolean flipY = true;
@@ -199,7 +206,6 @@ public class PixmapIO {
 		public PNG (int initialBufferSize) {
 			buffer = new ChunkBuffer(initialBufferSize);
 			deflater = new Deflater();
-			deflaterOutput = new DeflaterOutputStream(buffer, deflater);
 		}
 
 		/** If true, the resulting PNG is flipped vertically. Default is true. */
@@ -223,6 +229,7 @@ public class PixmapIO {
 
 		/** Writes the pixmap to the stream without closing the stream. */
 		public void write (OutputStream output, Pixmap pixmap) throws IOException {
+			DeflaterOutputStream deflaterOutput = new DeflaterOutputStream(buffer, deflater);
 			DataOutputStream dataOutput = new DataOutputStream(output);
 			dataOutput.write(SIGNATURE);
 
@@ -313,6 +320,7 @@ public class PixmapIO {
 		}
 
 		/** Disposal will happen automatically in {@link #finalize()} but can be done explicitly if desired. */
+		@SuppressWarnings("javadoc")
 		public void dispose () {
 			deflater.end();
 		}

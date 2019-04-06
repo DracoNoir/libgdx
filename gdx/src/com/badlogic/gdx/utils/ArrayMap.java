@@ -83,30 +83,36 @@ public class ArrayMap<K, V> implements Iterable<ObjectMap.Entry<K, V>> {
 		System.arraycopy(array.values, 0, values, 0, size);
 	}
 
-	public void put (K key, V value) {
-		if (size == keys.length) resize(Math.max(8, (int)(size * 1.75f)));
+	public int put (K key, V value) {
 		int index = indexOfKey(key);
-		if (index == -1) index = size++;
+		if (index == -1) {
+			if (size == keys.length) resize(Math.max(8, (int)(size * 1.75f)));
+			index = size++;
+		}
 		keys[index] = key;
 		values[index] = value;
+		return index;
 	}
 
-	public void put (K key, V value, int index) {
-		if (size == keys.length) resize(Math.max(8, (int)(size * 1.75f)));
+	public int put (K key, V value, int index) {
 		int existingIndex = indexOfKey(key);
-		if (existingIndex != -1) removeIndex(existingIndex);
+		if (existingIndex != -1)
+			removeIndex(existingIndex);
+		else if (size == keys.length) //
+			resize(Math.max(8, (int)(size * 1.75f)));
 		System.arraycopy(keys, index, keys, index + 1, size - index);
 		System.arraycopy(values, index, values, index + 1, size - index);
 		keys[index] = key;
 		values[index] = value;
 		size++;
+		return index;
 	}
 
-	public void putAll (ArrayMap map) {
+	public void putAll (ArrayMap<? extends K, ? extends V> map) {
 		putAll(map, 0, map.size);
 	}
 
-	public void putAll (ArrayMap map, int offset, int length) {
+	public void putAll (ArrayMap<? extends K, ? extends V> map, int offset, int length) {
 		if (offset + length > map.size)
 			throw new IllegalArgumentException("offset + length must be <= size: " + offset + " + " + length + " <= " + map.size);
 		int sizeNeeded = size + length - offset;
@@ -301,6 +307,11 @@ public class ArrayMap<K, V> implements Iterable<ObjectMap.Entry<K, V>> {
 		values[size] = null;
 	}
 
+	/** Returns true if the map is empty. */
+	public boolean isEmpty () {
+		return size == 0;
+	}
+
 	/** Returns the last key. */
 	public K peekKey () {
 		return keys[size - 1];
@@ -341,6 +352,7 @@ public class ArrayMap<K, V> implements Iterable<ObjectMap.Entry<K, V>> {
 	/** Increases the size of the backing arrays to accommodate the specified number of additional entries. Useful before adding
 	 * many entries to avoid multiple backing array resizes. */
 	public void ensureCapacity (int additionalCapacity) {
+		if (additionalCapacity < 0) throw new IllegalArgumentException("additionalCapacity must be >= 0: " + additionalCapacity);
 		int sizeNeeded = size + additionalCapacity;
 		if (sizeNeeded >= keys.length) resize(Math.max(8, sizeNeeded));
 	}
@@ -390,6 +402,38 @@ public class ArrayMap<K, V> implements Iterable<ObjectMap.Entry<K, V>> {
 			values[i] = null;
 		}
 		size = newSize;
+	}
+
+	public int hashCode () {
+		K[] keys = this.keys;
+		V[] values = this.values;
+		int h = 0;
+		for (int i = 0, n = size; i < n; i++) {
+			K key = keys[i];
+			V value = values[i];
+			if (key != null) h += key.hashCode() * 31;
+			if (value != null) h += value.hashCode();
+		}
+		return h;
+	}
+
+	public boolean equals (Object obj) {
+		if (obj == this) return true;
+		if (!(obj instanceof ArrayMap)) return false;
+		ArrayMap<K, V> other = (ArrayMap)obj;
+		if (other.size != size) return false;
+		K[] keys = this.keys;
+		V[] values = this.values;
+		for (int i = 0, n = size; i < n; i++) {
+			K key = keys[i];
+			V value = values[i];
+			if (value == null) {
+				if (!other.containsKey(key) || other.get(key) != null) return false;
+			} else {
+				if (!value.equals(other.get(key))) return false;
+			}
+		}
+		return true;
 	}
 
 	public String toString () {
@@ -453,8 +497,8 @@ public class ArrayMap<K, V> implements Iterable<ObjectMap.Entry<K, V>> {
 		return valuesIter2;
 	}
 
-	/** Returns an iterator for the keys in the map. Remove is supported. Note that the same iterator instance is returned each time
-	 * this method is called. Use the {@link Entries} constructor for nested or multithreaded iteration. */
+	/** Returns an iterator for the keys in the map. Remove is supported. Note that the same iterator instance is returned each
+	 * time this method is called. Use the {@link Entries} constructor for nested or multithreaded iteration. */
 	public Keys<K> keys () {
 		if (keysIter1 == null) {
 			keysIter1 = new Keys(this);

@@ -105,6 +105,18 @@ final public class LwjglInput implements Input {
 	public float getAccelerometerZ () {
 		return 0;
 	}
+	
+	public float getGyroscopeX () {
+		return 0;
+	}
+
+	public float getGyroscopeY () {
+		return 0;
+	}
+
+	public float getGyroscopeZ () {
+		return 0;
+	}
 
 	public void getTextInput (final TextInputListener listener, final String title, final String text, final String hint) {
 		SwingUtilities.invokeLater(new Runnable() {
@@ -180,6 +192,8 @@ final public class LwjglInput implements Input {
 					}
 				});
 
+				dialog.setModal(true);
+				dialog.setAlwaysOnTop(true);
 				dialog.setVisible(true);
 				dialog.dispose();
 
@@ -196,6 +210,11 @@ final public class LwjglInput implements Input {
 		});
 	}
 
+	@Override
+	public int getMaxPointers () {
+		return 1;
+	}
+
 	public int getX () {
 		return (int)(Mouse.getX() * Display.getPixelScaleFactor());
 	}
@@ -205,6 +224,10 @@ final public class LwjglInput implements Input {
 	}
 
 	public boolean isAccelerometerAvailable () {
+		return false;
+	}
+	
+	public boolean isGyroscopeAvailable () {
 		return false;
 	}
 
@@ -254,6 +277,16 @@ final public class LwjglInput implements Input {
 			return isTouched();
 	}
 
+	@Override
+	public float getPressure () {
+		return getPressure(0);
+	}
+
+	@Override
+	public float getPressure (int pointer) {
+		return isTouched(pointer) ? 1 : 0;
+	}
+
 	public boolean supportsMultitouch () {
 		return false;
 	}
@@ -270,6 +303,16 @@ final public class LwjglInput implements Input {
 
 	@Override
 	public boolean isCatchBackKey () {
+		return false;
+	}	
+
+	@Override
+	public void setCatchMenuKey (boolean catchMenu) {
+		
+	}
+	
+	@Override
+	public boolean isCatchMenuKey () {
 		return false;
 	}
 
@@ -847,9 +890,9 @@ final public class LwjglInput implements Input {
 
 		if (Keyboard.isCreated()) {
 			while (Keyboard.next()) {
-				if (Keyboard.getEventKeyState()) {
-					int keyCode = getGdxKeyCode(Keyboard.getEventKey());
-					char keyChar = Keyboard.getEventCharacter();
+				int keyCode = getGdxKeyCode(Keyboard.getEventKey());
+				char keyChar = Keyboard.getEventCharacter();
+				if (Keyboard.getEventKeyState() || (keyCode == 0 && keyChar != 0 && Character.isDefined(keyChar))) {
 					long timeStamp = Keyboard.getEventNanoseconds();
 
 					switch (keyCode) {
@@ -861,28 +904,28 @@ final public class LwjglInput implements Input {
 						break;
 					}
 
-					KeyEvent event = usedKeyEvents.obtain();
-					event.keyCode = keyCode;
-					event.keyChar = 0;
-					event.type = KeyEvent.KEY_DOWN;
-					event.timeStamp = timeStamp;
-					keyEvents.add(event);
+					if (keyCode != 0) {
+						KeyEvent event = usedKeyEvents.obtain();
+						event.keyCode = keyCode;
+						event.keyChar = 0;
+						event.type = KeyEvent.KEY_DOWN;
+						event.timeStamp = timeStamp;
+						keyEvents.add(event);
 
-					event = usedKeyEvents.obtain();
+						pressedKeys++;
+						keyJustPressed = true;
+						justPressedKeys[keyCode] = true;
+						lastKeyCharPressed = keyChar;
+						keyRepeatTimer = keyRepeatInitialTime;
+					}
+
+					KeyEvent event = usedKeyEvents.obtain();
 					event.keyCode = 0;
 					event.keyChar = keyChar;
 					event.type = KeyEvent.KEY_TYPED;
 					event.timeStamp = timeStamp;
 					keyEvents.add(event);
-
-					pressedKeys++;
-					keyJustPressed = true;
-					justPressedKeys[keyCode] = true;
-					lastKeyCharPressed = keyChar;
-					keyRepeatTimer = keyRepeatInitialTime;
 				} else {
-					int keyCode = LwjglInput.getGdxKeyCode(Keyboard.getEventKey());
-
 					KeyEvent event = usedKeyEvents.obtain();
 					event.keyCode = keyCode;
 					event.keyChar = 0;
@@ -1019,73 +1062,6 @@ final public class LwjglInput implements Input {
 	}
 
 	@Override
-	public void setCursorImage (Pixmap pixmap, int xHotspot, int yHotspot) {
-		try {
-			if (pixmap == null) {
-				Mouse.setNativeCursor(null);
-				return;
-			}
-
-			if (pixmap.getFormat() != Pixmap.Format.RGBA8888) {
-				throw new GdxRuntimeException("Cursor image pixmap is not in RGBA8888 format.");
-			}
-
-			if ((pixmap.getWidth() & (pixmap.getWidth() - 1)) != 0) {
-				throw new GdxRuntimeException("Cursor image pixmap width of " + pixmap.getWidth()
-					+ " is not a power-of-two greater than zero.");
-			}
-
-			if ((pixmap.getHeight() & (pixmap.getHeight() - 1)) != 0) {
-				throw new GdxRuntimeException("Cursor image pixmap height of " + pixmap.getHeight()
-					+ " is not a power-of-two greater than zero.");
-			}
-
-			if (xHotspot < 0 || xHotspot >= pixmap.getWidth()) {
-				throw new GdxRuntimeException("xHotspot coordinate of " + xHotspot + " is not within image width bounds: [0, "
-					+ pixmap.getWidth() + ").");
-			}
-
-			if (yHotspot < 0 || yHotspot >= pixmap.getHeight()) {
-				throw new GdxRuntimeException("yHotspot coordinate of " + yHotspot + " is not within image height bounds: [0, "
-					+ pixmap.getHeight() + ").");
-			}
-
-			// Convert from RGBA8888 to ARGB8888 and flip vertically
-			IntBuffer pixelBuffer = pixmap.getPixels().asIntBuffer();
-			int[] pixelsRGBA = new int[pixelBuffer.capacity()];
-			pixelBuffer.get(pixelsRGBA);
-			int[] pixelsARGBflipped = new int[pixelBuffer.capacity()];
-			int pixel;
-			if (pixelBuffer.order() == ByteOrder.BIG_ENDIAN) {
-				for (int y = 0; y < pixmap.getHeight(); ++y) {
-					for (int x = 0; x < pixmap.getWidth(); ++x) {
-						pixel = pixelsRGBA[x + (y * pixmap.getWidth())];
-						pixelsARGBflipped[x + ((pixmap.getHeight() - 1 - y) * pixmap.getWidth())] = ((pixel >> 8) & 0x00FFFFFF)
-							| ((pixel << 24) & 0xFF000000);
-					}
-				}
-			} else {
-				for (int y = 0; y < pixmap.getHeight(); ++y) {
-					for (int x = 0; x < pixmap.getWidth(); ++x) {
-						pixel = pixelsRGBA[x + (y * pixmap.getWidth())];
-						pixelsARGBflipped[x + ((pixmap.getHeight() - 1 - y) * pixmap.getWidth())] = ((pixel & 0xFF) << 16)
-							| ((pixel & 0xFF0000) >> 16) | (pixel & 0xFF00FF00);
-					}
-				}
-			}
-
-			Mouse.setNativeCursor(new Cursor(pixmap.getWidth(), pixmap.getHeight(), xHotspot, pixmap.getHeight() - yHotspot - 4, 1,
-				IntBuffer.wrap(pixelsARGBflipped), null));
-		} catch (LWJGLException e) {
-			throw new GdxRuntimeException("Could not set cursor image.", e);
-		}
-	}
-
-	@Override
-	public void setCatchMenuKey (boolean catchMenu) {
-	}
-
-	@Override
 	public long getCurrentEventTime () {
 		return currentEventTimeStamp;
 	}
@@ -1122,4 +1098,5 @@ final public class LwjglInput implements Input {
 		int button;
 		int pointer;
 	}
+
 }

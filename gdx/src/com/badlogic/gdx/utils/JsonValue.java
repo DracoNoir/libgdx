@@ -16,6 +16,8 @@
 
 package com.badlogic.gdx.utils;
 
+import java.io.IOException;
+import java.io.Writer;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -32,17 +34,19 @@ import com.badlogic.gdx.utils.JsonWriter.OutputType;
  * for (JsonValue entry = map.child; entry != null; entry = entry.next)
  * 	System.out.println(entry.name + " = " + entry.asString());
  * </pre>
+ * 
  * @author Nathan Sweet */
 public class JsonValue implements Iterable<JsonValue> {
 	private ValueType type;
 
+	/** May be null. */
 	private String stringValue;
 	private double doubleValue;
 	private long longValue;
 
 	public String name;
 	/** May be null. */
-	public JsonValue child, next, prev;
+	public JsonValue child, next, prev, parent;
 	public int size;
 
 	public JsonValue (ValueType type) {
@@ -55,11 +59,19 @@ public class JsonValue implements Iterable<JsonValue> {
 	}
 
 	public JsonValue (double value) {
-		set(value);
+		set(value, null);
 	}
 
 	public JsonValue (long value) {
-		set(value);
+		set(value, null);
+	}
+
+	public JsonValue (double value, String stringValue) {
+		set(value, stringValue);
+	}
+
+	public JsonValue (long value, String stringValue) {
+		set(value, stringValue);
 	}
 
 	public JsonValue (boolean value) {
@@ -82,7 +94,7 @@ public class JsonValue implements Iterable<JsonValue> {
 	 * @return May be null. */
 	public JsonValue get (String name) {
 		JsonValue current = child;
-		while (current != null && !current.name.equalsIgnoreCase(name))
+		while (current != null && (current.name == null || !current.name.equalsIgnoreCase(name)))
 			current = current.next;
 		return current;
 	}
@@ -109,7 +121,7 @@ public class JsonValue implements Iterable<JsonValue> {
 	 * @throws IllegalArgumentException if the child was not found. */
 	public JsonValue require (String name) {
 		JsonValue current = child;
-		while (current != null && !current.name.equalsIgnoreCase(name))
+		while (current != null && (current.name == null || !current.name.equalsIgnoreCase(name)))
 			current = current.next;
 		if (current == null) throw new IllegalArgumentException("Child not found with name: " + name);
 		return current;
@@ -162,9 +174,9 @@ public class JsonValue implements Iterable<JsonValue> {
 		case stringValue:
 			return stringValue;
 		case doubleValue:
-			return Double.toString(doubleValue);
+			return stringValue != null ? stringValue : Double.toString(doubleValue);
 		case longValue:
-			return Long.toString(longValue);
+			return stringValue != null ? stringValue : Long.toString(longValue);
 		case booleanValue:
 			return longValue != 0 ? "true" : "false";
 		case nullValue:
@@ -314,10 +326,10 @@ public class JsonValue implements Iterable<JsonValue> {
 				v = value.stringValue;
 				break;
 			case doubleValue:
-				v = Double.toString(value.doubleValue);
+				v = stringValue != null ? stringValue : Double.toString(value.doubleValue);
 				break;
 			case longValue:
-				v = Long.toString(value.longValue);
+				v = stringValue != null ? stringValue : Long.toString(value.longValue);
 				break;
 			case booleanValue:
 				v = value.longValue != 0 ? "true" : "false";
@@ -587,49 +599,49 @@ public class JsonValue implements Iterable<JsonValue> {
 	/** Finds the child with the specified name and returns it as a float. Returns defaultValue if not found. */
 	public float getFloat (String name, float defaultValue) {
 		JsonValue child = get(name);
-		return (child == null || !child.isValue()) ? defaultValue : child.asFloat();
+		return (child == null || !child.isValue() || child.isNull()) ? defaultValue : child.asFloat();
 	}
 
 	/** Finds the child with the specified name and returns it as a double. Returns defaultValue if not found. */
 	public double getDouble (String name, double defaultValue) {
 		JsonValue child = get(name);
-		return (child == null || !child.isValue()) ? defaultValue : child.asDouble();
+		return (child == null || !child.isValue() || child.isNull()) ? defaultValue : child.asDouble();
 	}
 
 	/** Finds the child with the specified name and returns it as a long. Returns defaultValue if not found. */
 	public long getLong (String name, long defaultValue) {
 		JsonValue child = get(name);
-		return (child == null || !child.isValue()) ? defaultValue : child.asLong();
+		return (child == null || !child.isValue() || child.isNull()) ? defaultValue : child.asLong();
 	}
 
 	/** Finds the child with the specified name and returns it as an int. Returns defaultValue if not found. */
 	public int getInt (String name, int defaultValue) {
 		JsonValue child = get(name);
-		return (child == null || !child.isValue()) ? defaultValue : child.asInt();
+		return (child == null || !child.isValue() || child.isNull()) ? defaultValue : child.asInt();
 	}
 
 	/** Finds the child with the specified name and returns it as a boolean. Returns defaultValue if not found. */
 	public boolean getBoolean (String name, boolean defaultValue) {
 		JsonValue child = get(name);
-		return (child == null || !child.isValue()) ? defaultValue : child.asBoolean();
+		return (child == null || !child.isValue() || child.isNull()) ? defaultValue : child.asBoolean();
 	}
 
 	/** Finds the child with the specified name and returns it as a byte. Returns defaultValue if not found. */
 	public byte getByte (String name, byte defaultValue) {
 		JsonValue child = get(name);
-		return (child == null || !child.isValue()) ? defaultValue : child.asByte();
+		return (child == null || !child.isValue() || child.isNull()) ? defaultValue : child.asByte();
 	}
 
 	/** Finds the child with the specified name and returns it as a short. Returns defaultValue if not found. */
 	public short getShort (String name, short defaultValue) {
 		JsonValue child = get(name);
-		return (child == null || !child.isValue()) ? defaultValue : child.asShort();
+		return (child == null || !child.isValue() || child.isNull()) ? defaultValue : child.asShort();
 	}
 
 	/** Finds the child with the specified name and returns it as a char. Returns defaultValue if not found. */
 	public char getChar (String name, char defaultValue) {
 		JsonValue child = get(name);
-		return (child == null || !child.isValue()) ? defaultValue : child.asChar();
+		return (child == null || !child.isValue() || child.isNull()) ? defaultValue : child.asChar();
 	}
 
 	/** Finds the child with the specified name and returns it as a string.
@@ -841,10 +853,39 @@ public class JsonValue implements Iterable<JsonValue> {
 		this.name = name;
 	}
 
+	/** Returns the parent for this value.
+	 * @return May be null. */
+	public JsonValue parent () {
+		return parent;
+	}
+
 	/** Returns the first child for this object or array.
 	 * @return May be null. */
 	public JsonValue child () {
 		return child;
+	}
+
+	/** Sets the name of the specified value and adds it after the last child. */
+	public void addChild (String name, JsonValue value) {
+		value.name = name;
+		addChild(value);
+	}
+
+	/** Adds the specified value after the last child. */
+	public void addChild (JsonValue value) {
+		value.parent = this;
+		JsonValue current = child;
+		if (current == null)
+			child = value;
+		else {
+			while (true) {
+				if (current.next == null) {
+					current.next = value;
+					return;
+				}
+				current = current.next;
+			}
+		}
 	}
 
 	/** Returns the next sibling of this value.
@@ -873,15 +914,19 @@ public class JsonValue implements Iterable<JsonValue> {
 		type = value == null ? ValueType.nullValue : ValueType.stringValue;
 	}
 
-	public void set (double value) {
+	/** @param stringValue May be null if the string representation is the string value of the double (eg, no leading zeros). */
+	public void set (double value, String stringValue) {
 		doubleValue = value;
 		longValue = (long)value;
+		this.stringValue = stringValue;
 		type = ValueType.doubleValue;
 	}
 
-	public void set (long value) {
+	/** @param stringValue May be null if the string representation is the string value of the long (eg, no leading zeros). */
+	public void set (long value, String stringValue) {
 		longValue = value;
 		doubleValue = (double)value;
+		this.stringValue = stringValue;
 		type = ValueType.longValue;
 	}
 
@@ -890,11 +935,66 @@ public class JsonValue implements Iterable<JsonValue> {
 		type = ValueType.booleanValue;
 	}
 
+	public String toJson (OutputType outputType) {
+		if (isValue()) return asString();
+		StringBuilder buffer = new StringBuilder(512);
+		json(this, buffer, outputType);
+		return buffer.toString();
+	}
+
+	private void json (JsonValue object, StringBuilder buffer, OutputType outputType) {
+		if (object.isObject()) {
+			if (object.child == null)
+				buffer.append("{}");
+			else {
+				int start = buffer.length();
+				while (true) {
+					buffer.append('{');
+					int i = 0;
+					for (JsonValue child = object.child; child != null; child = child.next) {
+						buffer.append(outputType.quoteName(child.name));
+						buffer.append(':');
+						json(child, buffer, outputType);
+						if (child.next != null) buffer.append(',');
+					}
+					break;
+				}
+				buffer.append('}');
+			}
+		} else if (object.isArray()) {
+			if (object.child == null)
+				buffer.append("[]");
+			else {
+				int start = buffer.length();
+				while (true) {
+					buffer.append('[');
+					for (JsonValue child = object.child; child != null; child = child.next) {
+						json(child, buffer, outputType);
+						if (child.next != null) buffer.append(',');
+					}
+					break;
+				}
+				buffer.append(']');
+			}
+		} else if (object.isString()) {
+			buffer.append(outputType.quoteValue(object.asString()));
+		} else if (object.isDouble()) {
+			double doubleValue = object.asDouble();
+			long longValue = object.asLong();
+			buffer.append(doubleValue == longValue ? longValue : doubleValue);
+		} else if (object.isLong()) {
+			buffer.append(object.asLong());
+		} else if (object.isBoolean()) {
+			buffer.append(object.asBoolean());
+		} else if (object.isNull()) {
+			buffer.append("null");
+		} else
+			throw new SerializationException("Unknown object type: " + object);
+	}
+
 	public String toString () {
-		if (isValue())
-			return name == null ? asString() : name + ": " + asString();
-		else
-			return (name == null ? "" : name + ": ") + prettyPrint(OutputType.minimal, 0);
+		if (isValue()) return name == null ? asString() : name + ": " + asString();
+		return (name == null ? "" : name + ": ") + prettyPrint(OutputType.minimal, 0);
 	}
 
 	public String prettyPrint (OutputType outputType, int singleLineColumns) {
@@ -913,9 +1013,9 @@ public class JsonValue implements Iterable<JsonValue> {
 	private void prettyPrint (JsonValue object, StringBuilder buffer, int indent, PrettyPrintSettings settings) {
 		OutputType outputType = settings.outputType;
 		if (object.isObject()) {
-			if (object.child == null) {
+			if (object.child == null)
 				buffer.append("{}");
-			} else {
+			else {
 				boolean newLines = !isFlat(object);
 				int start = buffer.length();
 				outer:
@@ -941,9 +1041,9 @@ public class JsonValue implements Iterable<JsonValue> {
 				buffer.append('}');
 			}
 		} else if (object.isArray()) {
-			if (object.child == null) {
+			if (object.child == null)
 				buffer.append("[]");
-			} else {
+			else {
 				boolean newLines = !isFlat(object);
 				boolean wrap = settings.wrapNumericArrays || !isNumeric(object);
 				int start = buffer.length();
@@ -982,6 +1082,66 @@ public class JsonValue implements Iterable<JsonValue> {
 			throw new SerializationException("Unknown object type: " + object);
 	}
 
+	/** More efficient than {@link #prettyPrint(PrettyPrintSettings)} but {@link PrettyPrintSettings#singleLineColumns} and
+	 * {@link PrettyPrintSettings#wrapNumericArrays} are not supported. */
+	public void prettyPrint (OutputType outputType, Writer writer) throws IOException {
+		PrettyPrintSettings settings = new PrettyPrintSettings();
+		settings.outputType = outputType;
+		prettyPrint(this, writer, 0, settings);
+	}
+
+	private void prettyPrint (JsonValue object, Writer writer, int indent, PrettyPrintSettings settings) throws IOException {
+		OutputType outputType = settings.outputType;
+		if (object.isObject()) {
+			if (object.child == null)
+				writer.append("{}");
+			else {
+				boolean newLines = !isFlat(object) || object.size > 6;
+				writer.append(newLines ? "{\n" : "{ ");
+				int i = 0;
+				for (JsonValue child = object.child; child != null; child = child.next) {
+					if (newLines) indent(indent, writer);
+					writer.append(outputType.quoteName(child.name));
+					writer.append(": ");
+					prettyPrint(child, writer, indent + 1, settings);
+					if ((!newLines || outputType != OutputType.minimal) && child.next != null) writer.append(',');
+					writer.append(newLines ? '\n' : ' ');
+				}
+				if (newLines) indent(indent - 1, writer);
+				writer.append('}');
+			}
+		} else if (object.isArray()) {
+			if (object.child == null)
+				writer.append("[]");
+			else {
+				boolean newLines = !isFlat(object);
+				writer.append(newLines ? "[\n" : "[ ");
+				int i = 0;
+				for (JsonValue child = object.child; child != null; child = child.next) {
+					if (newLines) indent(indent, writer);
+					prettyPrint(child, writer, indent + 1, settings);
+					if ((!newLines || outputType != OutputType.minimal) && child.next != null) writer.append(',');
+					writer.append(newLines ? '\n' : ' ');
+				}
+				if (newLines) indent(indent - 1, writer);
+				writer.append(']');
+			}
+		} else if (object.isString()) {
+			writer.append(outputType.quoteValue(object.asString()));
+		} else if (object.isDouble()) {
+			double doubleValue = object.asDouble();
+			long longValue = object.asLong();
+			writer.append(Double.toString(doubleValue == longValue ? longValue : doubleValue));
+		} else if (object.isLong()) {
+			writer.append(Long.toString(object.asLong()));
+		} else if (object.isBoolean()) {
+			writer.append(Boolean.toString(object.asBoolean()));
+		} else if (object.isNull()) {
+			writer.append("null");
+		} else
+			throw new SerializationException("Unknown object type: " + object);
+	}
+
 	static private boolean isFlat (JsonValue object) {
 		for (JsonValue child = object.child; child != null; child = child.next)
 			if (child.isObject() || child.isArray()) return false;
@@ -995,6 +1155,11 @@ public class JsonValue implements Iterable<JsonValue> {
 	}
 
 	static private void indent (int count, StringBuilder buffer) {
+		for (int i = 0; i < count; i++)
+			buffer.append('\t');
+	}
+
+	static private void indent (int count, Writer buffer) throws IOException {
 		for (int i = 0; i < count; i++)
 			buffer.append('\t');
 	}
@@ -1036,6 +1201,30 @@ public class JsonValue implements Iterable<JsonValue> {
 		public Iterator<JsonValue> iterator () {
 			return this;
 		}
+	}
+
+	/** Returns a human readable string representing the path from the root of the JSON object graph to this value. */
+	public String trace () {
+		if (parent == null) {
+			if (type == ValueType.array) return "[]";
+			if (type == ValueType.object) return "{}";
+			return "";
+		}
+		String trace;
+		if (parent.type == ValueType.array) {
+			trace = "[]";
+			int i = 0;
+			for (JsonValue child = parent.child; child != null; child = child.next, i++) {
+				if (child == this) {
+					trace = "[" + i + "]";
+					break;
+				}
+			}
+		} else if (name.indexOf('.') != -1)
+			trace = ".\"" + name.replace("\"", "\\\"") + "\"";
+		else
+			trace = '.' + name;
+		return parent.trace() + trace;
 	}
 
 	static public class PrettyPrintSettings {

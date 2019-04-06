@@ -39,7 +39,7 @@ import com.badlogic.gdx.utils.ObjectIntMap;
 import com.badlogic.gdx.utils.ObjectMap;
 
 /** <p>
- * A shader program encapsulates a vertex and fragment shader pair linked to form a shader program useable with OpenGL ES 2.0.
+ * A shader program encapsulates a vertex and fragment shader pair linked to form a shader program.
  * </p>
  * 
  * <p>
@@ -79,9 +79,19 @@ public class ShaderProgram implements Disposable {
 	public static final String TANGENT_ATTRIBUTE = "a_tangent";
 	/** default name for binormal attribute **/
 	public static final String BINORMAL_ATTRIBUTE = "a_binormal";
+	/** default name for boneweight attribute **/
+	public static final String BONEWEIGHT_ATTRIBUTE = "a_boneWeight";
 
 	/** flag indicating whether attributes & uniforms must be present at all times **/
 	public static boolean pedantic = true;
+
+	/** code that is always added to the vertex shader code, typically used to inject a #version line. Note that this is added
+	 * as-is, you should include a newline (`\n`) if needed. */
+	public static String prependVertexCode = "";
+
+	/** code that is always added to every fragment shader code, typically used to inject a #version line. Note that this is added
+	 * as-is, you should include a newline (`\n`) if needed. */
+	public static String prependFragmentCode = "";
 
 	/** the list of currently available shaders **/
 	private final static ObjectMap<Application, Array<ShaderProgram>> shaders = new ObjectMap<Application, Array<ShaderProgram>>();
@@ -149,6 +159,11 @@ public class ShaderProgram implements Disposable {
 		if (vertexShader == null) throw new IllegalArgumentException("vertex shader must not be null");
 		if (fragmentShader == null) throw new IllegalArgumentException("fragment shader must not be null");
 
+		if (prependVertexCode != null && prependVertexCode.length() > 0)
+			vertexShader = prependVertexCode + vertexShader;
+		if (prependFragmentCode != null && prependFragmentCode.length() > 0)
+			fragmentShader = prependFragmentCode + fragmentShader;
+
 		this.vertexShaderSource = vertexShader;
 		this.fragmentShaderSource = fragmentShader;
 		this.matrix = BufferUtils.newFloatBuffer(16);
@@ -178,7 +193,7 @@ public class ShaderProgram implements Disposable {
 			return;
 		}
 
-		program = linkProgram();
+		program = linkProgram(createProgram());
 		if (program == -1) {
 			isCompiled = false;
 			return;
@@ -204,6 +219,7 @@ public class ShaderProgram implements Disposable {
 // int infoLogLength = intbuf.get(0);
 // if (infoLogLength > 1) {
 			String infoLog = gl.glGetShaderInfoLog(shader);
+			log += type == GL20.GL_VERTEX_SHADER ? "Vertex shader\n" : "Fragment shader:\n";
 			log += infoLog;
 // }
 			return -1;
@@ -212,10 +228,15 @@ public class ShaderProgram implements Disposable {
 		return shader;
 	}
 
-	private int linkProgram () {
+	protected int createProgram () {
 		GL20 gl = Gdx.gl20;
 		int program = gl.glCreateProgram();
-		if (program == 0) return -1;
+		return program != 0 ? program : -1;
+	}
+
+	private int linkProgram (int program) {
+		GL20 gl = Gdx.gl20;
+		if (program == -1) return -1;
 
 		gl.glAttachShader(program, vertexShaderHandle);
 		gl.glAttachShader(program, fragmentShaderHandle);
@@ -290,8 +311,7 @@ public class ShaderProgram implements Disposable {
 		return location;
 	}
 
-	/** Sets the uniform with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param value the value */
@@ -308,8 +328,7 @@ public class ShaderProgram implements Disposable {
 		gl.glUniform1i(location, value);
 	}
 
-	/** Sets the uniform with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param value1 the first value
@@ -327,8 +346,7 @@ public class ShaderProgram implements Disposable {
 		gl.glUniform2i(location, value1, value2);
 	}
 
-	/** Sets the uniform with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param value1 the first value
@@ -347,8 +365,7 @@ public class ShaderProgram implements Disposable {
 		gl.glUniform3i(location, value1, value2, value3);
 	}
 
-	/** Sets the uniform with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param value1 the first value
@@ -368,8 +385,7 @@ public class ShaderProgram implements Disposable {
 		gl.glUniform4i(location, value1, value2, value3, value4);
 	}
 
-	/** Sets the uniform with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param value the value */
@@ -386,8 +402,7 @@ public class ShaderProgram implements Disposable {
 		gl.glUniform1f(location, value);
 	}
 
-	/** Sets the uniform with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param value1 the first value
@@ -405,8 +420,7 @@ public class ShaderProgram implements Disposable {
 		gl.glUniform2f(location, value1, value2);
 	}
 
-	/** Sets the uniform with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param value1 the first value
@@ -425,8 +439,7 @@ public class ShaderProgram implements Disposable {
 		gl.glUniform3f(location, value1, value2, value3);
 	}
 
-	/** Sets the uniform with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param value1 the first value
@@ -498,8 +511,7 @@ public class ShaderProgram implements Disposable {
 		gl.glUniform4fv(location, length / 4, values, offset);
 	}
 
-	/** Sets the uniform matrix with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform matrix with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param matrix the matrix */
@@ -507,14 +519,13 @@ public class ShaderProgram implements Disposable {
 		setUniformMatrix(name, matrix, false);
 	}
 
-	/** Sets the uniform matrix with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform matrix with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param matrix the matrix
 	 * @param transpose whether the matrix should be transposed */
 	public void setUniformMatrix (String name, Matrix4 matrix, boolean transpose) {
-		setUniformMatrix(fetchUniformLocation(name), matrix, transpose); 
+		setUniformMatrix(fetchUniformLocation(name), matrix, transpose);
 	}
 
 	public void setUniformMatrix (int location, Matrix4 matrix) {
@@ -527,8 +538,7 @@ public class ShaderProgram implements Disposable {
 		gl.glUniformMatrix4fv(location, 1, transpose, matrix.val, 0);
 	}
 
-	/** Sets the uniform matrix with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform matrix with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param matrix the matrix */
@@ -536,8 +546,7 @@ public class ShaderProgram implements Disposable {
 		setUniformMatrix(name, matrix, false);
 	}
 
-	/** Sets the uniform matrix with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform matrix with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param matrix the matrix
@@ -556,8 +565,7 @@ public class ShaderProgram implements Disposable {
 		gl.glUniformMatrix3fv(location, 1, transpose, matrix.val, 0);
 	}
 
-	/** Sets an array of uniform matrices with the given name. Throws an IllegalArgumentException in case it is not called in
-	 * between a {@link #begin()}/{@link #end()} block.
+	/** Sets an array of uniform matrices with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param buffer buffer containing the matrix data
@@ -570,8 +578,7 @@ public class ShaderProgram implements Disposable {
 		gl.glUniformMatrix3fv(location, count, transpose, buffer);
 	}
 
-	/** Sets an array of uniform matrices with the given name. Throws an IllegalArgumentException in case it is not called in
-	 * between a {@link #begin()}/{@link #end()} block.
+	/** Sets an array of uniform matrices with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param buffer buffer containing the matrix data
@@ -594,8 +601,7 @@ public class ShaderProgram implements Disposable {
 		setUniformMatrix4fv(fetchUniformLocation(name), values, offset, length);
 	}
 
-	/** Sets the uniform with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param values x and y as the first and second values respectively */
@@ -607,8 +613,7 @@ public class ShaderProgram implements Disposable {
 		setUniformf(location, values.x, values.y);
 	}
 
-	/** Sets the uniform with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param values x, y and z as the first, second and third values respectively */
@@ -620,8 +625,7 @@ public class ShaderProgram implements Disposable {
 		setUniformf(location, values.x, values.y, values.z);
 	}
 
-	/** Sets the uniform with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the uniform with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the name of the uniform
 	 * @param values r, g, b and a as the first through fourth values respectively */
@@ -633,8 +637,7 @@ public class ShaderProgram implements Disposable {
 		setUniformf(location, values.r, values.g, values.b, values.a);
 	}
 
-	/** Sets the vertex attribute with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the vertex attribute with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the attribute name
 	 * @param size the number of components, must be >= 1 and <= 4
@@ -657,8 +660,7 @@ public class ShaderProgram implements Disposable {
 		gl.glVertexAttribPointer(location, size, type, normalize, stride, buffer);
 	}
 
-	/** Sets the vertex attribute with the given name. Throws an IllegalArgumentException in case it is not called in between a
-	 * {@link #begin()}/{@link #end()} block.
+	/** Sets the vertex attribute with the given name. The {@link ShaderProgram} must be bound for this to work.
 	 * 
 	 * @param name the attribute name
 	 * @param size the number of components, must be >= 1 and <= 4
@@ -782,6 +784,11 @@ public class ShaderProgram implements Disposable {
 		}
 		builder.append("}");
 		return builder.toString();
+	}
+
+	/** @return the number of managed shader programs currently loaded */
+	public static int getNumManagedShaderPrograms () {
+		return shaders.get(Gdx.app).size;
 	}
 
 	/** Sets the given attribute

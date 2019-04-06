@@ -51,6 +51,20 @@ public class BinaryHeap<T extends BinaryHeap.Node> {
 		return add(node);
 	}
 
+	/** Returns if binary heap contains the provided node.
+	 * @param node May be null.
+	 * @param identity If true, == comparison will be used. If false, .equals() comparison will be used. */
+	public boolean contains (T node, boolean identity) {
+		if (identity || node == null) {
+			for (Node n : nodes)
+				if (n == node) return true;
+		} else {
+			for (Node n : nodes)
+				if (n.equals(node)) return true;
+		}
+		return false;
+	}
+
 	public T peek () {
 		if (size == 0) throw new IllegalStateException("The heap is empty.");
 		return (T)nodes[0];
@@ -71,6 +85,11 @@ public class BinaryHeap<T extends BinaryHeap.Node> {
 		nodes[size] = null;
 		if (size > 0 && index < size) down(index);
 		return (T)removed;
+	}
+
+	/** Returns true if the heap is empty. */
+	public boolean isEmpty () {
+		return size == 0;
 	}
 
 	public void clear () {
@@ -150,6 +169,23 @@ public class BinaryHeap<T extends BinaryHeap.Node> {
 
 		nodes[index] = node;
 		node.index = index;
+	}
+
+	@Override
+	public boolean equals (Object obj) {
+		if (!(obj instanceof BinaryHeap)) return false;
+		BinaryHeap other = (BinaryHeap)obj;
+		if (other.size != size) return false;
+		for (int i = 0, n = size; i < n; i++)
+			if (other.nodes[i].value != nodes[i].value) return false;
+		return true;
+	}
+
+	public int hashCode () {
+		int h = 1;
+		for (int i = 0, n = size; i < n; i++)
+			h = h * 31 + Float.floatToIntBits(nodes[i].value);
+		return h;
 	}
 
 	public String toString () {

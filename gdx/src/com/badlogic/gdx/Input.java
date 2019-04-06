@@ -16,7 +16,6 @@
 
 package com.badlogic.gdx;
 
-import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.utils.ObjectIntMap;
 
 /** <p>
@@ -558,17 +557,29 @@ public interface Input {
 	/** Enumeration of potentially available peripherals. Use with {@link Input#isPeripheralAvailable(Peripheral)}.
 	 * @author mzechner */
 	public enum Peripheral {
-		HardwareKeyboard, OnscreenKeyboard, MultitouchScreen, Accelerometer, Compass, Vibrator
+		HardwareKeyboard, OnscreenKeyboard, MultitouchScreen, Accelerometer, Compass, Vibrator, Gyroscope, RotationVector, Pressure
 	}
 
-	/** @return The value of the accelerometer on its x-axis. ranges between [-10,10]. */
+	/** @return The acceleration force in m/s^2 applied to the device in the X axis, including the force of gravity */
 	public float getAccelerometerX ();
 
-	/** @return The value of the accelerometer on its y-axis. ranges between [-10,10]. */
+	/** @return The acceleration force in m/s^2 applied to the device in the Y axis, including the force of gravity */
 	public float getAccelerometerY ();
 
-	/** @return The value of the accelerometer on its y-axis. ranges between [-10,10]. */
+	/** @return The acceleration force in m/s^2 applied to the device in the Z axis, including the force of gravity */
 	public float getAccelerometerZ ();
+
+	/** @return The rate of rotation in rad/s around the X axis */
+	public float getGyroscopeX ();
+
+	/** @return The rate of rotation in rad/s around the Y axis */
+	public float getGyroscopeY ();
+
+	/** @return The rate of rotation in rad/s around the Z axis */
+	public float getGyroscopeZ ();
+	
+	/** @return The maximum number of pointers supported */
+	public int getMaxPointers ();
 
 	/** @return The x coordinate of the last touch on touch screen devices and the current mouse position on desktop for the first
 	 *         pointer in screen coordinates. The screen origin is the top left corner. */
@@ -618,12 +629,24 @@ public interface Input {
 	 * id identifies the order in which the fingers went down on the screen, e.g. 0 is the first finger, 1 is the second and so on.
 	 * When two fingers are touched down and the first one is lifted the second one keeps its index. If another finger is placed on
 	 * the touch screen the first free index will be used.
-	 * 
+	 *
 	 * @param pointer the pointer
 	 * @return whether the screen is touched by the pointer */
 	public boolean isTouched (int pointer);
 
-	/** Whether a given button is pressed or not. Button constants can be found in {@link Buttons}. On Android only the Button#LEFT
+	/** @return the pressure of the first pointer */
+	public float getPressure ();
+
+	/** Returns the pressure of the given pointer, where 0 is untouched. On Android it should be
+	 * up to 1.0, but it can go above that slightly and its not consistent between devices. On iOS 1.0 is the normal touch
+	 * and significantly more of hard touch. Check relevant manufacturer documentation for details.
+	 * Check availability with {@link Input#isPeripheralAvailable(Peripheral)}. If not supported, returns 1.0 when touched.
+	 *
+	 * @param pointer the pointer id.
+	 * @return the pressure */
+	public float getPressure (int pointer);
+
+	/** Whether a given button is pressed or not. Button constants can be found in {@link Buttons}. On Android only the Buttons#LEFT
 	 * constant is meaningful before version 4.0.
 	 * @param button the button to check.
 	 * @return whether the button is down or not. */
@@ -717,6 +740,9 @@ public interface Input {
 	 * 
 	 * @param catchMenu whether to catch the menu button */
 	public void setCatchMenuKey (boolean catchMenu);
+	
+	/** @return whether the menu button is currently being caught */
+	public boolean isCatchMenuKey ();
 
 	/** Sets the {@link InputProcessor} that will receive all touch and key input events. It will be called before the
 	 * {@link ApplicationListener#render()} method each frame.
@@ -756,15 +782,4 @@ public interface Input {
 	 * @param x the x-position
 	 * @param y the y-position */
 	public void setCursorPosition (int x, int y);
-
-	/** Only viable on the desktop. Will set the mouse cursor image to the image represented by the
-	 * {@link com.badlogic.gdx.graphics.Pixmap}. The Pixmap must be in RGBA8888 format, width & height must be powers-of-two
-	 * greater than zero (not necessarily equal), and alpha transparency must be single-bit (i.e., 0x00 or 0xFF only). To revert to
-	 * the default operating system cursor, pass in a null Pixmap; xHotspot & yHotspot are ignored in this case.
-	 * 
-	 * @param pixmap the mouse cursor image as a {@link com.badlogic.gdx.graphics.Pixmap}, or null to revert to the default
-	 *           operating system cursor
-	 * @param xHotspot the x location of the hotspot pixel within the cursor image (origin top-left corner)
-	 * @param yHotspot the y location of the hotspot pixel within the cursor image (origin top-left corner) */
-	public void setCursorImage (Pixmap pixmap, int xHotspot, int yHotspot);
 }

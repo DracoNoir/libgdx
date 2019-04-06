@@ -34,7 +34,11 @@ import com.badlogic.gdx.utils.StreamUtils;
  * @author acoppes */
 public class LwjglNet implements Net {
 
-	NetJavaImpl netJavaImpl = new NetJavaImpl();
+	NetJavaImpl netJavaImpl;
+
+	public LwjglNet(LwjglApplicationConfiguration configuration) {
+		netJavaImpl = new NetJavaImpl(configuration.maxNetThreads);
+	}
 
 	@Override
 	public void sendHttpRequest (HttpRequest httpRequest, HttpResponseListener httpResponseListener) {
@@ -44,6 +48,11 @@ public class LwjglNet implements Net {
 	@Override
 	public void cancelHttpRequest (HttpRequest httpRequest) {
 		netJavaImpl.cancelHttpRequest(httpRequest);
+	}
+	
+	@Override
+	public ServerSocket newServerSocket (Protocol protocol, String ipAddress, int port, ServerSocketHints hints) {
+		return new NetJavaServerSocketImpl(protocol, ipAddress, port, hints);
 	}
 
 	@Override
@@ -57,8 +66,8 @@ public class LwjglNet implements Net {
 	}
 
 	@Override
-	public void openURI (String URI) {
-		Sys.openURL(URI);
+	public boolean openURI (String URI) {
+		return Sys.openURL(URI);
 	}
 
 }

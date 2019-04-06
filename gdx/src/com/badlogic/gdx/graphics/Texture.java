@@ -16,6 +16,9 @@
 
 package com.badlogic.gdx.graphics;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetLoaderParameters.LoadedCallback;
@@ -24,15 +27,10 @@ import com.badlogic.gdx.assets.loaders.AssetLoader;
 import com.badlogic.gdx.assets.loaders.TextureLoader.TextureParameter;
 import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Pixmap.Format;
-import com.badlogic.gdx.graphics.glutils.ETC1TextureData;
 import com.badlogic.gdx.graphics.glutils.FileTextureData;
-import com.badlogic.gdx.graphics.glutils.KTXTextureData;
 import com.badlogic.gdx.graphics.glutils.PixmapTextureData;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.GdxRuntimeException;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /** A Texture wraps a standard OpenGL ES texture.
  * <p>
@@ -52,9 +50,30 @@ public class Texture extends GLTexture {
 	final static Map<Application, Array<Texture>> managedTextures = new HashMap<Application, Array<Texture>>();
 
 	public enum TextureFilter {
-		Nearest(GL20.GL_NEAREST), Linear(GL20.GL_LINEAR), MipMap(GL20.GL_LINEAR_MIPMAP_LINEAR), MipMapNearestNearest(
-			GL20.GL_NEAREST_MIPMAP_NEAREST), MipMapLinearNearest(GL20.GL_LINEAR_MIPMAP_NEAREST), MipMapNearestLinear(
-			GL20.GL_NEAREST_MIPMAP_LINEAR), MipMapLinearLinear(GL20.GL_LINEAR_MIPMAP_LINEAR);
+		/** Fetch the nearest texel that best maps to the pixel on screen. */
+		Nearest(GL20.GL_NEAREST),
+
+		/** Fetch four nearest texels that best maps to the pixel on screen. */
+		Linear(GL20.GL_LINEAR),
+
+		/** @see TextureFilter#MipMapLinearLinear */
+		MipMap(GL20.GL_LINEAR_MIPMAP_LINEAR),
+
+		/** Fetch the best fitting image from the mip map chain based on the pixel/texel ratio and then sample the texels with a
+		 * nearest filter. */
+		MipMapNearestNearest(GL20.GL_NEAREST_MIPMAP_NEAREST),
+
+		/** Fetch the best fitting image from the mip map chain based on the pixel/texel ratio and then sample the texels with a
+		 * linear filter. */
+		MipMapLinearNearest(GL20.GL_LINEAR_MIPMAP_NEAREST),
+
+		/** Fetch the two best fitting images from the mip map chain and then sample the nearest texel from each of the two images,
+		 * combining them to the final output pixel. */
+		MipMapNearestLinear(GL20.GL_NEAREST_MIPMAP_LINEAR),
+
+		/** Fetch the two best fitting images from the mip map chain and then sample the four nearest texels from each of the two
+		 * images, combining them to the final output pixel. */
+		MipMapLinearLinear(GL20.GL_LINEAR_MIPMAP_LINEAR);
 
 		final int glEnum;
 
@@ -100,7 +119,7 @@ public class Texture extends GLTexture {
 	}
 
 	public Texture (FileHandle file, Format format, boolean useMipMaps) {
-		this(createTextureData(file, format, useMipMaps));
+		this(TextureData.Factory.loadFromFile(file, format, useMipMaps));
 	}
 
 	public Texture (Pixmap pixmap) {
@@ -120,11 +139,15 @@ public class Texture extends GLTexture {
 	}
 
 	public Texture (TextureData data) {
-		super(GL20.GL_TEXTURE_2D, createGLHandle());
+		this(GL20.GL_TEXTURE_2D, Gdx.gl.glGenTexture(), data);
+	}
+
+	protected Texture (int glTarget, int glHandle, TextureData data) {
+		super(glTarget, glHandle);
 		load(data);
 		if (data.isManaged()) addManagedTexture(Gdx.app, this);
 	}
-	
+
 	public void load (TextureData data) {
 		if (this.data != null && data.isManaged() != this.data.isManaged())
 			throw new GdxRuntimeException("New data must have the same managed status as the old data");
@@ -135,8 +158,8 @@ public class Texture extends GLTexture {
 		bind();
 		uploadImageData(GL20.GL_TEXTURE_2D, data);
 
-		setFilter(minFilter, magFilter);
-		setWrap(uWrap, vWrap);
+		unsafeSetFilter(minFilter, magFilter, true);
+		unsafeSetWrap(uWrap, vWrap, true);
 		Gdx.gl.glBindTexture(glTarget, 0);
 	}
 
@@ -145,7 +168,7 @@ public class Texture extends GLTexture {
 	@Override
 	protected void reload () {
 		if (!isManaged()) throw new GdxRuntimeException("Tried to reload unmanaged Texture");
-		glHandle = createGLHandle();
+		glHandle = Gdx.gl.glGenTexture();
 		load(data);
 	}
 
@@ -196,6 +219,11 @@ public class Texture extends GLTexture {
 		if (glHandle == 0) return;
 		delete();
 		if (data.isManaged()) if (managedTextures.get(Gdx.app) != null) managedTextures.get(Gdx.app).removeValue(this, true);
+	}
+
+	public String toString () {
+		if (data instanceof FileTextureData) return data.toString();
+		return super.toString();
 	}
 
 	private static void addManagedTexture (Application app, Texture texture) {
@@ -261,7 +289,7 @@ public class Texture extends GLTexture {
 
 					// unload the texture, create a new gl handle then reload it.
 					assetManager.unload(fileName);
-					texture.glHandle = Texture.createGLHandle();
+					texture.glHandle = Gdx.gl.glGenTexture();
 					assetManager.load(fileName, Texture.class, params);
 				}
 			}

@@ -16,12 +16,7 @@
 
 package com.badlogic.gdx.graphics.g3d;
 
-import java.util.Comparator;
-import java.util.Iterator;
-
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.Disposable;
 
 public class Material extends Attributes {
 	private static int counter = 0;
@@ -75,12 +70,17 @@ public class Material extends Attributes {
 	}
 
 	/** Create a copy of this material */
-	public final Material copy () {
+	public Material copy () {
 		return new Material(this);
 	}
 	
 	@Override
 	public int hashCode () {
 		return super.hashCode() + 3 * id.hashCode();
+	}
+	
+	@Override
+	public boolean equals (Object other) {
+		return (other instanceof Material) && ((other == this) || ((((Material)other).id.equals(id)) && super.equals(other)));
 	}
 }

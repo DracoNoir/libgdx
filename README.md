@@ -1,6 +1,6 @@
 ![logo](http://libgdx.badlogicgames.com/img/logo.png)
 
-[![Build Status](http://144.76.220.132:8080/buildStatus/icon?job=libgdx)](http://144.76.220.132:8080/job/libgdx/)
+[![Build Status](https://libgdx.badlogicgames.com/jenkins/buildStatus/icon?job=libgdx&.png)](https://libgdx.badlogicgames.com/jenkins/job/libgdx/)
 
 libGDX is a cross-platform Java game development framework based on 
 OpenGL (ES) that works on Windows, Linux, Mac OS X, Android, your
@@ -17,7 +17,7 @@ WebGL enabled browser and iOS.
   * [Read the Wiki](https://github.com/libgdx/libgdx/wiki)
 
 ### Downloads
-As we switched to Gradle, there's no need to download libGDX itself anymore. For those of you who still prefer the old way of doing things, you can get libGDX from the [offical download site](http://libgdx.badlogicgames.com/download.html).
+As we switched to Gradle, there's no need to download libGDX itself anymore. For those of you who still prefer the old way of doing things, you can get libGDX from the [official download site](http://libgdx.badlogicgames.com/download.html).
 
 ### Documentation
 The [Wiki](https://github.com/libgdx/libgdx/wiki) contains all the information you'll need to write a 
@@ -32,6 +32,8 @@ You can follow the latest news about libGDX on the [blog](http://www.badlogicgam
 
 You can get help on our [forum](http://badlogicgames.com/forum/) and talk to other libGDX 
 users on our IRC channel #libgdx at irc.freenode.net.
+
+Another way of getting help or talking to other libGDX users is the [libgdx discord](https://discord.gg/6pgDK9F).
 
 ### Reporting Issues
 Use the [issue tracker](https://github.com/libgdx/libgdx/issues?page=1&state=open) here on GitHub to report issues. Make sure you read the 
@@ -59,7 +61,7 @@ libGDX is supported by helpful 3rd parties via code contributions, free licenses
 
 <table>
 <tr>
-<td style="text-align: center;"><a href="http://bit.ly/robovmgdx"><img height="100" style="margin-right:20px" src="http://libgdx.badlogicgames.com/img/robovm.png" alt="RoboVM" /></a></td>
+<td style="text-align: center;"><a href="http://bit.ly/robovmgdx"><img style="margin-right:20px" src="http://libgdx.badlogicgames.com/img/robovm.png" alt="RoboVM" /></a></td>
 <td style="text-align: center;"><a href="http://bit.ly/spinegdx"><img src="http://libgdx.badlogicgames.com/img/spine.png"></a></td>
 </tr>
 
@@ -73,6 +75,5 @@ libGDX is supported by helpful 3rd parties via code contributions, free licenses
 <td style="text-align: center;"><a href="http://bit.ly/nextpeergdx"><img src="http://libgdx.badlogicgames.com/img/nextpeer.png"></a></td>
 </tr>
 </table>
-
 
 Intel and the Intel logo are trademarks of Intel Corporation in the U.S. and/or other countries.

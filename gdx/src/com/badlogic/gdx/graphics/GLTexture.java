@@ -17,9 +17,7 @@
 package com.badlogic.gdx.graphics;
 
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Pixmap.Blending;
-import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.Texture.TextureWrap;
 import com.badlogic.gdx.graphics.TextureData.TextureDataType;
@@ -113,11 +111,11 @@ public abstract class GLTexture implements Disposable {
 	 * @param force True to always set the values, even if they are the same as the current values. */
 	public void unsafeSetWrap (TextureWrap u, TextureWrap v, boolean force) {
 		if (u != null && (force || uWrap != u)) {
-			Gdx.gl.glTexParameterf(glTarget, GL20.GL_TEXTURE_WRAP_S, u.getGLEnum());
+			Gdx.gl.glTexParameteri(glTarget, GL20.GL_TEXTURE_WRAP_S, u.getGLEnum());
 			uWrap = u;
 		}
 		if (v != null && (force || vWrap != v)) {
-			Gdx.gl.glTexParameterf(glTarget, GL20.GL_TEXTURE_WRAP_T, v.getGLEnum());
+			Gdx.gl.glTexParameteri(glTarget, GL20.GL_TEXTURE_WRAP_T, v.getGLEnum());
 			vWrap = v;
 		}
 	}
@@ -129,8 +127,8 @@ public abstract class GLTexture implements Disposable {
 		this.uWrap = u;
 		this.vWrap = v;
 		bind();
-		Gdx.gl.glTexParameterf(glTarget, GL20.GL_TEXTURE_WRAP_S, u.getGLEnum());
-		Gdx.gl.glTexParameterf(glTarget, GL20.GL_TEXTURE_WRAP_T, v.getGLEnum());
+		Gdx.gl.glTexParameteri(glTarget, GL20.GL_TEXTURE_WRAP_S, u.getGLEnum());
+		Gdx.gl.glTexParameteri(glTarget, GL20.GL_TEXTURE_WRAP_T, v.getGLEnum());
 	}
 
 	/** Sets the {@link TextureFilter} for this texture for minification and magnification. Assumes the texture is bound and active!
@@ -146,11 +144,11 @@ public abstract class GLTexture implements Disposable {
 	 * @param force True to always set the values, even if they are the same as the current values. */
 	public void unsafeSetFilter (TextureFilter minFilter, TextureFilter magFilter, boolean force) {
 		if (minFilter != null && (force || this.minFilter != minFilter)) {
-			Gdx.gl.glTexParameterf(glTarget, GL20.GL_TEXTURE_MIN_FILTER, minFilter.getGLEnum());
+			Gdx.gl.glTexParameteri(glTarget, GL20.GL_TEXTURE_MIN_FILTER, minFilter.getGLEnum());
 			this.minFilter = minFilter;
 		}
 		if (magFilter != null && (force || this.magFilter != magFilter)) {
-			Gdx.gl.glTexParameterf(glTarget, GL20.GL_TEXTURE_MAG_FILTER, magFilter.getGLEnum());
+			Gdx.gl.glTexParameteri(glTarget, GL20.GL_TEXTURE_MAG_FILTER, magFilter.getGLEnum());
 			this.magFilter = magFilter;
 		}
 	}
@@ -162,8 +160,8 @@ public abstract class GLTexture implements Disposable {
 		this.minFilter = minFilter;
 		this.magFilter = magFilter;
 		bind();
-		Gdx.gl.glTexParameterf(glTarget, GL20.GL_TEXTURE_MIN_FILTER, minFilter.getGLEnum());
-		Gdx.gl.glTexParameterf(glTarget, GL20.GL_TEXTURE_MAG_FILTER, magFilter.getGLEnum());
+		Gdx.gl.glTexParameteri(glTarget, GL20.GL_TEXTURE_MIN_FILTER, minFilter.getGLEnum());
+		Gdx.gl.glTexParameteri(glTarget, GL20.GL_TEXTURE_MAG_FILTER, magFilter.getGLEnum());
 	}
 
 	/** Destroys the OpenGL Texture as specified by the glHandle. */
@@ -179,24 +177,6 @@ public abstract class GLTexture implements Disposable {
 		delete();
 	}
 
-	/** @deprecated Use {@link TextureData.Factory#loadFromFile(FileHandle, Format, boolean)} instead. */
-	@Deprecated
-	protected static TextureData createTextureData (FileHandle file, Format format, boolean useMipMaps) {
-		return TextureData.Factory.loadFromFile(file, format, useMipMaps);
-	}
-
-	/** @deprecated Use {@link TextureData.Factory#loadFromFile(FileHandle, boolean)} instead. */
-	@Deprecated
-	protected static TextureData createTextureData (FileHandle file, boolean useMipMaps) {
-		return createTextureData(file, null, useMipMaps);
-	}
-
-	/** @deprecated Use {@link GL20#glGenTexture()} instead. */
-	@Deprecated
-	protected static int createGLHandle () {
-		return Gdx.gl.glGenTexture ();
-	}
-	
 	protected static void uploadImageData (int target, TextureData data) {
 		uploadImageData(target, data, 0);
 	}
@@ -219,10 +199,8 @@ public abstract class GLTexture implements Disposable {
 		boolean disposePixmap = data.disposePixmap();
 		if (data.getFormat() != pixmap.getFormat()) {
 			Pixmap tmp = new Pixmap(pixmap.getWidth(), pixmap.getHeight(), data.getFormat());
-			Blending blend = Pixmap.getBlending();
-			Pixmap.setBlending(Blending.None);
+			tmp.setBlending(Blending.None);
 			tmp.drawPixmap(pixmap, 0, 0, 0, 0, pixmap.getWidth(), pixmap.getHeight());
-			Pixmap.setBlending(blend);
 			if (data.disposePixmap()) {
 				pixmap.dispose();
 			}

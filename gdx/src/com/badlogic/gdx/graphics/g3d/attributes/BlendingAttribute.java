@@ -18,6 +18,7 @@ package com.badlogic.gdx.graphics.g3d.attributes;
 
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g3d.Attribute;
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.NumberUtils;
 
 public class BlendingAttribute extends Attribute {
@@ -68,7 +69,7 @@ public class BlendingAttribute extends Attribute {
 	}
 
 	public BlendingAttribute (final BlendingAttribute copyFrom) {
-		this(copyFrom == null ? true : copyFrom.blended, copyFrom == null ? GL20.GL_SRC_ALPHA : copyFrom.sourceFunction,
+		this(copyFrom == null || copyFrom.blended, copyFrom == null ? GL20.GL_SRC_ALPHA : copyFrom.sourceFunction,
 			copyFrom == null ? GL20.GL_ONE_MINUS_SRC_ALPHA : copyFrom.destFunction, copyFrom == null ? 1.f : copyFrom.opacity);
 	}
 
@@ -76,7 +77,7 @@ public class BlendingAttribute extends Attribute {
 	public BlendingAttribute copy () {
 		return new BlendingAttribute(this);
 	}
-	
+
 	@Override
 	public int hashCode () {
 		int result = super.hashCode();
@@ -84,6 +85,16 @@ public class BlendingAttribute extends Attribute {
 		result = 947 * result + sourceFunction;
 		result = 947 * result + destFunction;
 		result = 947 * result + NumberUtils.floatToRawIntBits(opacity);
-		return result; 
+		return result;
+	}
+
+	@Override
+	public int compareTo (Attribute o) {
+		if (type != o.type) return (int)(type - o.type);
+		BlendingAttribute other = (BlendingAttribute)o;
+		if (blended != other.blended) return blended ? 1 : -1;
+		if (sourceFunction != other.sourceFunction) return sourceFunction - other.sourceFunction;
+		if (destFunction != other.destFunction) return destFunction - other.destFunction;
+		return (MathUtils.isEqual(opacity, other.opacity)) ? 0 : (opacity < other.opacity ? 1 : -1);
 	}
 }
